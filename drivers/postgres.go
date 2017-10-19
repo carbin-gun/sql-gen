@@ -56,6 +56,7 @@ func (e *PostgresExecutor) LoadMeta(tables ...string) (map[string]*model.TableMe
 		err = errors.Wrap(err, "open connection error")
 		panic(err)
 	}
+	defer db.Close()
 	result := []*model.ColumnMeta{}
 	if len(tables) == 0 { //query all
 		sql := fmt.Sprintf(metaSQL, e.DBName, e.Schema)
