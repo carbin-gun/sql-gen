@@ -32,8 +32,12 @@ func (t *TableMeta) JointColumns() string {
 func (t *TableMeta) StructName() string {
 	items := strings.Split(t.TableName, "_")
 	buf := bytes.Buffer{}
-	for _, item := range items {
-		buf.WriteString(strings.Title(item))
+	for i, item := range items {
+		if i != 0 {
+			buf.WriteString(strings.Title(item)) //Title it when it's not the first. the variable should not be exported
+		} else {
+			buf.WriteString(item)
+		}
 	}
 	return buf.String()
 }
