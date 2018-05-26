@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+
+	"github.com/stoewer/go-strcase"
 )
 
 //TableMeta table meta data
@@ -19,7 +21,7 @@ func (t *TableMeta) JointColumns() string {
 	buf := bytes.Buffer{}
 	size := len(t.Columns)
 	for i, c := range t.Columns {
-		buf.WriteString(c.Column)
+		buf.WriteString(string(c.Column))
 		if i != size-1 {
 			buf.WriteString(", ")
 		}
@@ -32,24 +34,62 @@ func (t *TableMeta) JointColumns() string {
 func (t *TableMeta) StructName() string {
 	items := strings.Split(t.TableName, "_")
 	buf := bytes.Buffer{}
-	for i, item := range items {
-		if i != 0 {
-			buf.WriteString(strings.Title(item)) //Title it when it's not the first. the variable should not be exported
-		} else {
-			buf.WriteString(item)
-		}
+	for _, item := range items {
+		buf.WriteString(strings.Title(item)) //Title it
 	}
 	return buf.String()
 }
 
+type ColumnName string
+
+func (c ColumnName) CamelCase() string {
+	return strcase.UpperCamelCase(string(c))
+}
+
+type ColumnType string
+
+const (
+	BigInt            ColumnType = "bigint"
+	Int               ColumnType = "int"
+	SmallInt          ColumnType = "smallint"
+	Varchar           ColumnType = "character varying"
+	JSONB             ColumnType = "jsonb"
+	TimestampWithZone ColumnType = "timestamp with time zone"
+	Boolen            ColumnType = "boolean"
+	Integer           ColumnType = "integer"
+	Date              ColumnType = "date"
+)
+
+var (
+	SqlTypeToGoType = map[ColumnType]string{
+		BigInt:            "int64",
+		Int:               "int64",
+		SmallInt:          "uint8",
+		Varchar:           "string",
+		JSONB:             "interface{}",
+		TimestampWithZone: "time.Time",
+		Boolen:            "bool",
+		Integer:           "int64",
+		Date:              "time.Time",
+	}
+)
+
+func (t ColumnType) GoType() string {
+	target, exist := SqlTypeToGoType[t]
+	if exist {
+		return target
+	}
+	return string(t)
+}
+
 //ColumnMeta ,column meta data
 type ColumnMeta struct {
-	TableName string `db:"table_name"`
-	Database  string `db:"table_catalog"`
-	Schema    string `db:"table_schema"`
-	Column    string `db:"column_name"`
-	Type      string `db:"data_type"`
-	Ordinal   int    `db:"ordinal_position"`
+	TableName string     `db:"table_name"`
+	Database  string     `db:"table_catalog"`
+	Schema    string     `db:"table_schema"`
+	Column    ColumnName `db:"column_name"`
+	Type      ColumnType `db:"data_type"`
+	Ordinal   int        `db:"ordinal_position"`
 }
 
 func (c *ColumnMeta) String() string {

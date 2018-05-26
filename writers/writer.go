@@ -52,10 +52,16 @@ type FileWriter struct{}
 
 var (
 	//if call method, omit parentheses is ok
+	//the range and end is on purpose not to put in a new row.or the generated code will be with a blank row along
 	tpl = `
 package tables
+import(
+	"time"
+)
 {{range .data}}
-type {{.StructName}} struct{}
+type {{.StructName}} struct{ {{range .Columns}}
+	{{.Column.CamelCase}} {{.Type.GoType}} {{end}}
+}
 func (t *{{.StructName}}) Column() string {
 	return "{{.JointColumns}}"
 }
@@ -93,6 +99,9 @@ func (w FileWriter) WriteMeta(workDir string) {
 	if err := t.Execute(file, nil); err != nil {
 		panic(fmt.Sprintf("meta render error:%v", err))
 	}
+	if err := format(filename); err != nil {
+		panic(fmt.Sprintf("go format data file [tables.go] error:%v", err))
+	}
 }
 func (w FileWriter) WriteData(workDir string, data map[string]*model.TableMeta) {
 	filename := filepath.Join(DirName, FileName)
@@ -113,8 +122,7 @@ func (w FileWriter) WriteData(workDir string, data map[string]*model.TableMeta) 
 	if err != nil {
 		panic(fmt.Sprintf("write to data file [tables.go] error:%v", err))
 	}
-	err = format(filename)
-	if err != nil {
+	if err := format(filename); err != nil {
 		panic(fmt.Sprintf("go format data file [tables.go] error:%v", err))
 	}
 }
