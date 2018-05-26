@@ -53,43 +53,81 @@ type FileWriter struct{}
 var (
 	//if call method, omit parentheses is ok
 	tpl = `
-	package store
-	const(
-		{{range .data}}
-		{{.StructName}}Columns = "{{.JointColumns}}"
-		{{end}}
-	)
+package tables
+{{range .data}}
+type {{.StructName}} struct{}
+func (t *{{.StructName}}) Column() string {
+	return "{{.JointColumns}}"
+}
+{{end}}	
+	`
+	metaTpl = `
+package tables
+type Table interface{
+	Column() string
+}	
+
 	`
 )
 
-func (FileWriter) Write(data map[string]*model.TableMeta) error {
-	workDir, err := os.Getwd()
-	if err != nil {
-		return errors.Wrap(err, "os.Getwd() error")
+const (
+	DirName      = "database/tables/"
+	FileName     = "tables.go"
+	metaFileName = "meta.go"
+)
+
+func (FileWriter) MakeDir() {
+	if err := os.MkdirAll(filepath.Dir(DirName), 0755); err != nil {
+		panic("error create database/tables directory")
 	}
-	filename := "columns.go"
+}
+
+func (w FileWriter) WriteMeta(workDir string) {
+	filename := filepath.Join(DirName, metaFileName)
+	file, err := os.OpenFile(filepath.Join(workDir, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+
+	t, err := template.New("FILE_WRITER").Parse(metaTpl)
+	if err != nil {
+		panic(fmt.Errorf("meta template create error:%v", err))
+	}
+	if err := t.Execute(file, nil); err != nil {
+		panic(fmt.Sprintf("meta render error:%v", err))
+	}
+}
+func (w FileWriter) WriteData(workDir string, data map[string]*model.TableMeta) {
+	filename := filepath.Join(DirName, FileName)
 	file, err := os.OpenFile(filepath.Join(workDir, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		return errors.Wrap(err, "write to file error")
+		panic(fmt.Sprintf("open data file error:%v", err))
 	}
 
 	defer file.Close()
 	t, err := template.New("FILE_WRITER").Parse(tpl)
 	if err != nil {
-		return errors.Wrap(err, "parse writer tempalte error")
+		panic(fmt.Sprintf("parse writer data tempalte error:%v", err))
 	}
 	params := map[string]interface{}{
 		"data": data,
 	}
 	err = t.Execute(file, params)
 	if err != nil {
-		return errors.Wrap(err, "write to  columns.go file error")
+		panic(fmt.Sprintf("write to data file [tables.go] error:%v", err))
 	}
 	err = format(filename)
 	if err != nil {
-		return err
+		panic(fmt.Sprintf("go format data file [tables.go] error:%v", err))
 	}
-	fmt.Println("write to columns.go OK")
+}
+
+func (w FileWriter) Write(data map[string]*model.TableMeta) error {
+	w.MakeDir()
+	workDir, err := os.Getwd()
+	if err != nil {
+		return errors.Wrap(err, "os.Getwd() error")
+	}
+	w.WriteMeta(workDir)
+	w.WriteData(workDir, data)
+	fmt.Println("write OK!!!")
 	return nil
 }
 

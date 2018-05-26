@@ -36,7 +36,7 @@ func Run(host, driver, user, password, database, schema string, ssl bool, tables
 	var items []string
 	if tables != "" {
 		items = strings.Split(tables, ",")
-		fmt.Println("query tabels:", items)
+		fmt.Println("query tables:", items)
 	}
 	data, err := e.LoadMeta(items...)
 	if err != nil {

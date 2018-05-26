@@ -18,7 +18,7 @@ var (
 	password = flag.String("password", "", "password for the databse")
 	database = flag.String("database", "", "database for the access")
 	schema   = flag.String("schema", "public", "database for the access")
-	tables   = flag.String("tables", "", "tables for the access,default for all,splitted by `,` is spcefied ")
+	tables   = flag.String("tables", "", "tables for the access,default for all,split by `,` is spcefied ")
 	writer   = flag.String("writer", "file", "output to file/console")
 )
 
@@ -43,6 +43,7 @@ func main() {
 		}
 		*user = current.Username
 	}
+	fmt.Println("tables:",*tables)
 	data := drivers.Run(*host, *driver, *user, *password, *database, *schema, *ssl, *tables)
 	err := w.Write(data)
 	if err != nil {
